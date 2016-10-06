@@ -451,10 +451,10 @@ static void showLatencyReport(void) {
         printf("\n");
 
         qsort(config.latency,config.requests_finished,sizeof(long long),compareLatency);
-        for (i = 0; i < config.requests; i++) {
-            if (config.latency[i] != curlat || i == (config.requests-1)) {
+        for (i = 0; i < config.requests_finished; i++) {
+            if (config.latency[i] != curlat || i == (config.requests_finished-1)) {
                 curlat = config.latency[i];
-                perc = ((float)(i+1)*100)/config.requests;
+                perc = ((float)(i+1)*100)/config.requests_finished;
                 printf("%.2f%% <= %d microseconds\n", perc, curlat);
             }
         }
