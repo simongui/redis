@@ -79,6 +79,7 @@ static struct config {
     sds dbnumstr;
     char *tests;
     char *auth;
+    int duration;
 } config;
 
 typedef struct _client {
@@ -171,7 +172,14 @@ static void randomizeClientKey(client c) {
 }
 
 static void clientDone(client c) {
-    if (config.requests_finished == config.requests) {
+    long long duration = mstime() - config.start;
+    int duration_in_secs = (int)duration / 1000;
+
+    if (config.duration > 0 && duration_in_secs >= config.duration) {
+      freeClient(c);
+      aeStop(config.el);
+      return;
+    } else if (config.requests_finished == config.requests) {
         freeClient(c);
         aeStop(config.el);
         return;
@@ -442,7 +450,7 @@ static void showLatencyReport(void) {
         printf("  keep alive: %d\n", config.keepalive);
         printf("\n");
 
-        qsort(config.latency,config.requests,sizeof(long long),compareLatency);
+        qsort(config.latency,config.requests_finished,sizeof(long long),compareLatency);
         for (i = 0; i < config.requests; i++) {
             if (config.latency[i] != curlat || i == (config.requests-1)) {
                 curlat = config.latency[i];
@@ -521,6 +529,10 @@ int parseOptions(int argc, const char **argv) {
             config.randomkeys_keyspacelen = atoi(argv[++i]);
             if (config.randomkeys_keyspacelen < 0)
                 config.randomkeys_keyspacelen = 0;
+
+        } else if (!strcmp(argv[i],"-D")) {
+          if (lastarg) goto invalid;
+          config.duration = atoi(argv[++i]);
         } else if (!strcmp(argv[i],"-q")) {
             config.quiet = 1;
         } else if (!strcmp(argv[i],"--csv")) {
